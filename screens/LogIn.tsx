@@ -1,73 +1,84 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Button, Alert } from 'react-native';
-import { auth } from '../firebase';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useNavigation } from '@react-navigation/native';
+import { auth } from '../firebase';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../App';
 
-type LoginScreenProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
+type LogInScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'LogIn'>;
 
-export default function Login(){
-    
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const navigation = useNavigation<LoginScreenProp>();
+interface Props {
+  navigation: LogInScreenNavigationProp;
+}
 
-    const handleLogin = () => {
-        signInWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-            navigation.replace('Home');
-        })
-        .catch((error) => {
-            Alert.alert('Erro', 'Email ou senha inválidos');
-        });
+export default function LogIn({ navigation }: Props) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Erro", "Preencha todos os campos.");
+      return;
     }
-    return(
-        <View style={styles.container}>
-            <Text style={styles.title}>Login</Text>
-            <TextInput
-                style={styles.input}
-                placeholder='Email'
-                value={email}
-                onChangeText={setEmail}
-                keyboardType='email-address'
-                autoCapitalize='none'
-            />
-            <TextInput
-                style={styles.input}
-                placeholder='Senha'
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-            />
-            <Button title='Entrar' onPress={handleLogin} color='#1e90ff' />
-            <View> 
-                <Button title='Cadastrar' onPress={() => navigation.replace('Register')} />
-            </View>
-        </View>
-    )
+    
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      Alert.alert("Erro de Autenticação", "Credenciais inválidas.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Donghua Tracker</Text>
+        <Text style={styles.subtitle}>Bem-vindo de volta!</Text>
+      </View>
+
+      <View style={styles.form}>
+        <TextInput
+          style={styles.input}
+          placeholder="E-mail"
+          placeholderTextColor="#9ca3af"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Senha"
+          placeholderTextColor="#9ca3af"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+
+        <TouchableOpacity style={styles.mainButton} onPress={handleLogin} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.mainButtonText}>Entrar</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate('SignUp')} style={styles.switchButton}>
+          <Text style={styles.switchButtonText}>Não tem conta? Cadastre-se</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
-    },
-    title: {
-        fontSize: 24,
-        marginBottom: 20,
-    },
-    input: {
-        width: '100%',
-        height: 40,
-        borderColor: '#ccc',
-        borderWidth: 1,
-        borderRadius: 5,
-        marginBottom: 15,
-        paddingHorizontal: 10,
-    },
-})
+  container: { flex: 1, backgroundColor: '#030712', justifyContent: 'center', padding: 24 },
+  header: { alignItems: 'center', marginBottom: 40 },
+  title: { fontSize: 32, fontWeight: 'bold', color: '#a855f7', marginBottom: 8 },
+  subtitle: { color: '#9ca3af', fontSize: 16 },
+  form: { gap: 16 },
+  input: { backgroundColor: '#1f2937', color: '#fff', borderRadius: 16, padding: 16, fontSize: 16, borderWidth: 1, borderColor: '#374151' },
+  mainButton: { backgroundColor: '#9333ea', borderRadius: 16, padding: 16, alignItems: 'center', marginTop: 8 },
+  mainButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  switchButton: { padding: 16, alignItems: 'center' },
+  switchButtonText: { color: '#9ca3af', fontSize: 14 }
+});
